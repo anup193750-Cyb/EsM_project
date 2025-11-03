@@ -1,0 +1,140 @@
+rl_circuit_app.py
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RL Circuit Simulator (AC Excitation)</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .plots {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    label { display: block; margin-top: 10px; }
+    input { width: 100%; }
+  </style>
+</head>
+<body>
+  <h2>RL Circuit Simulator with AC Excitation</h2>
+
+  <div class="container">
+    <div class="controls">
+      <label>Resistance (R) [Ω]: <span id="Rval">10</span></label>
+      <input type="range" id="R" min="0" max="200" step="1" value="10">
+
+      <label>Inductance (L) [H]: <span id="Lval">0.1</span></label>
+      <input type="range" id="L" min="0.01" max="2" step="0.01" value="0.1">
+
+      <label>Frequency (f) [Hz]: <span id="fval">50</span></label>
+      <input type="range" id="f" min="1" max="500" step="1" value="50">
+
+      <label>Voltage Amplitude (Vm) [V]: <span id="Vmval">10</span></label>
+      <input type="range" id="Vm" min="1" max="50" step="1" value="10">
+    </div>
+
+    <div class="plots">
+      <div id="plot_voltage_current"></div>
+      <div id="plot_transient"></div>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <h3>Equations</h3>
+    <p>Voltage source: <b>v(t) = Vm·cos(ωt)</b></p>
+    <p>Impedance: <b>Z = √(R² + (ωL)²)</b></p>
+    <p>Current amplitude: <b>Im = Vm / Z</b></p>
+    <p>Phase angle: <b>φ = arctan(ωL / R)</b></p>
+    <p>Current: <b>i(t) = Im·cos(ωt − φ)</b></p>
+  </div>
+
+  <script>
+    const Rslider = document.getElementById("R");
+    const Lslider = document.getElementById("L");
+    const fslider = document.getElementById("f");
+    const Vmslider = document.getElementById("Vm");
+
+    const Rval = document.getElementById("Rval");
+    const Lval = document.getElementById("Lval");
+    const fval = document.getElementById("fval");
+    const Vmval = document.getElementById("Vmval");
+
+    function updatePlots() {
+      const R = parseFloat(Rslider.value);
+      const L = parseFloat(Lslider.value);
+      const f = parseFloat(fslider.value);
+      const Vm = parseFloat(Vmslider.value);
+
+      Rval.textContent = R;
+      Lval.textContent = L.toFixed(2);
+      fval.textContent = f;
+      Vmval.textContent = Vm;
+
+      const w = 2 * Math.PI * f;
+      const Z = Math.sqrt(R ** 2 + (w * L) ** 2);
+      const Im = Vm / Z;
+      const phi = Math.atan((w * L) / R);
+
+      const t = Array.from({length: 1000}, (_, i) => i * 0.0005);
+      const v = t.map(tt => Vm * Math.cos(w * tt));
+      const i = t.map(tt => Im * Math.cos(w * tt - phi));
+
+      // Voltage vs Current (Lissajous type)
+      Plotly.newPlot("plot_voltage_current", [{
+        x: v,
+        y: i,
+        mode: "lines",
+        name: "V-I"
+      }], {
+        title: "Voltage vs Current",
+        xaxis: { title: "Voltage (V)" },
+        yaxis: { title: "Current (A)" }
+      });
+
+      // Transient waveform
+      Plotly.newPlot("plot_transient", [
+        { x: t, y: v, mode: "lines", name: "Voltage (V)" },
+        { x: t, y: i, mode: "lines", name: "Current (A)", yaxis: "y2" }
+      ], {
+        title: "Voltage and Current vs Time",
+        xaxis: { title: "Time (s)" },
+        yaxis: { title: "Voltage (V)" },
+        yaxis2: {
+          title: "Current (A)",
+          overlaying: "y",
+          side: "right"
+        },
+        legend: { x: 0.1, y: 1.1, orientation: "h" }
+      });
+    }
+
+    Rslider.oninput = updatePlots;
+    Lslider.oninput = updatePlots;
+    fslider.oninput = updatePlots;
+    Vmslider.oninput = updatePlots;
+
+    updatePlots();
+  </script>
+</body>
+</html>
